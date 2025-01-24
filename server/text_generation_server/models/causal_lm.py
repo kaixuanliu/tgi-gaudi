@@ -45,7 +45,6 @@ from text_generation_server.pb import generate_pb2
 from text_generation_server.utils import (
     HeterogeneousNextTokenChooser,
     StoppingCriteria,
-    make_tokenizer_optional,
     is_tokenizer_transparent,
     pad_next_token_chooser_parameters,
 )
@@ -689,7 +688,6 @@ class CausalLM(Model):
             truncation_side="left",
             trust_remote_code=trust_remote_code,
         )
-        make_tokenizer_optional(tokenizer)
 
         # Create model
         world_size = int(os.getenv("WORLD_SIZE", "1"))
@@ -1310,13 +1308,8 @@ class CausalLM(Model):
         del prefill_batch
 
         # Warmup prefill batch_size
-        max_input_length = request.max_input_length
-        prefill_batch_size_list = [
-            batch
-            for batch in range(
-                BATCH_BUCKET_SIZE, max_prefill_batch_size, BATCH_BUCKET_SIZE
-            )
-        ]
+        max_input_length =  request.max_input_length
+        prefill_batch_size_list = [batch for batch in range(PREFILL_BATCH_BUCKET_SIZE, max_prefill_batch_size, PREFILL_BATCH_BUCKET_SIZE)]
         prefill_batch_size_list.append(max_prefill_batch_size)
         prefill_seqlen_list = [
             seq
