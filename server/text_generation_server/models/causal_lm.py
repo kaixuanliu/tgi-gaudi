@@ -456,6 +456,7 @@ class CausalLMBatch(Batch):
         )
 
         top_n_tokens = [r.data.top_n_tokens for r in flat_requests]
+        top_n_tokens.extend([-1] * (new_bs - total_requests))
         top_n_tokens_tensor = torch.tensor(
             top_n_tokens, device=device, dtype=torch.int64
         )
@@ -564,9 +565,9 @@ class CausalLMBatch(Batch):
         bucket_size = max_input_length
         left_padding = max_input_length - input_len
         if input_len < max_input_length and PAD_SEQUENCE_TO_MULTIPLE_OF != 0:
-            assert (
-                PAD_SEQUENCE_TO_MULTIPLE_OF <= max_input_length
-            ), "PAD_SEQUENCE_TO_MULTIPLE_OF cannot be higher than max_input_length"
+            assert PAD_SEQUENCE_TO_MULTIPLE_OF <= max_input_length, (
+                "PAD_SEQUENCE_TO_MULTIPLE_OF cannot be higher than max_input_length"
+            )
             rounded_seq_len = round_up(input_len + 1, PAD_SEQUENCE_TO_MULTIPLE_OF)
             if rounded_seq_len <= max_input_length:
                 bucket_size = rounded_seq_len - 1
@@ -600,10 +601,7 @@ class CausalLMBatch(Batch):
         position_ids.masked_fill_(attention_mask == 0, 1)
 
         old_bs = len(requests)
-        last_request = requests[-1] if old_bs > 0 else None
-        for idx in range(old_bs, new_bs):
-            top_n_tokens.append(-1)
-            requests.append(last_request)
+        top_n_tokens.extend([-1] * (new_bs - old_bs))
         top_n_tokens_tensor = torch.tensor(
             top_n_tokens, device=device, dtype=torch.int64
         )
